@@ -40,6 +40,7 @@ msg_andar:       .asciiz "Digite o andar (1-12):\n"
 msg_apto:        .asciiz "Digite o numero do apartamento (1 ou 2):\n"
 msg_aptos_vazios:   .asciiz "Numero de apartamentos vazios: \n"
 msg_aptos_ocupados: .asciiz "Numero de apartamentos ocupados: \n"
+apInvalido: .asciiz "Número de apartamento inválido!\n"
 
 
 .text
@@ -86,11 +87,17 @@ addMorador_:
     printString (msg_andar) # Pede o andar do novo morador
     lerInt($t0) # lê efetivamente o Andar e armazena em t0
     subi $t0, $t0, 1 #subtrai o inteiro digitado para ficar de 0-11
-
-    printString(msg_apto) # Pede o apartamento do novo morador
     
+  
+    blt $t0, $zero, inputInvalido #verifica se o numero do aptmento é válido
+    bgt $t0, 11, inputInvalido
+    
+    printString(msg_apto) # Pede o apartamento do novo morador
     lerInt($t1) # lê efetivamente o número do Apartamento e armazena em t1
     subi $t1, $t1, 1 # $t1 = número apartamento digitado - 1 = 0/1
+    
+    blt $t1, $zero, inputInvalido  #verifica se o numero do andar é válido
+    bgt $t1, 1, inputInvalido
     
     # Calcula posição no array de moradores
     sll $t2, $t0, 1           # t2 = andar x 2 = índice do primeiro apartamento do andar 
@@ -180,3 +187,6 @@ printComandoInvalido: #comando não identificado
 printString comandoInvalido #printa mensagem quando não há um comando identificado
 j printBanner #volta para printBanner
     
+inputInvalido: #número do andar ou apartamento inválido
+printString apInvalido #printa mensagem quando não há um apto ou andar identificado
+j printBanner #volta pra printBanner
