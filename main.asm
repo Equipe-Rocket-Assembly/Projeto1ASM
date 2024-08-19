@@ -24,15 +24,16 @@
 
 
 .data
+moradores:  .space 5760   # 12 andares x 2 apartamentos por andar x 6 moradores x 40 bytes (nome) por morador
+veiculos:     .space 1440   # 12 andares x 2 apartamentos por andar x  30 bytes (20 bytes modelo + 10 bytes placa) por veiculo x 2 motos (maior espaço possível)
+input:     .space 100         #espaço reservado para o input do usuário
+mensagemPrintar:  .space 100  #espaço reservado para o print da mensagem
+
 banner:     .asciiz "GLM-shell>> "
 comandoSair:   .asciiz "exit"
 addMorador:  .asciiz "addMorador"
 newline:    .asciiz "\n"
 comandoInvalido: .asciiz "Comando inválido.\n"
-input:     .space 100         #espaço reservado para o input do usuário
-mensagemPrintar:  .space 100  #espaço reservado para o print da mensagem
-moradores:  .space 5760   # 12 andares x 2 apartamentos por andar x 6 moradores x 40 bytes (nome) por morador
-
 msg_apto_cheio:  .asciiz "Apartamento cheio! Nao pode adicionar mais moradores.\n"
 msg_morador_registrado: .asciiz "Morador cadastrado com sucesso!"
 msg_registrar:   .asciiz "Digite o nome do morador:\n"
@@ -41,7 +42,16 @@ msg_apto:        .asciiz "Digite o numero do apartamento (1 ou 2):\n"
 msg_aptos_vazios:   .asciiz "Numero de apartamentos vazios: \n"
 msg_aptos_ocupados: .asciiz "Numero de apartamentos ocupados: \n"
 apInvalido: .asciiz "Número de apartamento inválido!\n"
-
+addAuto:  .asciiz "addAuto"
+msg_vagas_ocupadas: .asciiz "\nEsse apartamento ja esgotou todas as vagas disponiveis\n"
+msg_veiculo:     .asciiz "\nVocê deseja registrar um carro ou moto? (1=carro, 2=moto):\n"
+tipoInvalido: .asciiz "Opção inválida.\n"
+msg_modelo:      .asciiz "\nDigite o modelo do veículo:\n"
+msg_placa:       .asciiz "\nDigite a placa do veículo:\n"
+msg_carro_registrado: .asciiz "\nCarro registrado com sucesso!\n"
+msg_moto_registrada:  .asciiz "\nMoto registrada com sucesso!\n"
+msg_carro_existente:  .asciiz "\nEste apartamento não pode registrar um carro.\n"
+msg_motos_existentes: .asciiz "\nEste apartamento já possui duas motos cadastradas. Não pode registrar mais veículos.\n"
 
 .text
 
@@ -70,13 +80,132 @@ comparaComandoExit: #compara com o comando exit
     la $a0, input              #carrega o endereço do input em a0
     la $a1, comandoSair        #carrega o endereço do comando "exit" em a1
     jal strcmp                 #chama a função strcmp 
-    bnez $v0, addMorador_      #se não for "exit", verifica se é print
+    bnez $v0, comparaAddAuto     #se não for "exit", verifica se é print
     
     #se for "exit", encerra o programa
     li $v0, 10                  #syscall para sair do programa
     syscall                    
+
+comparaAddAuto:
+la $a0, input
+la $a1, addAuto
+jal strcmp
+bnez $v0, comparaAddMorador
+
+    # Solicita o andar
+    printString(msg_andar)
     
-addMorador_:
+    # Lê o Int Andar e armazena em $t0
+    lerInt($t0)
+    subi $t0, $v0, 1          # $t0 = andar (0-11)
+     
+    blt $t0, $zero, inputInvalido #verifica se o numero do aptmento é válido
+    bgt $t0, 11, inputInvalido
+    
+    # Solicita o número do apartamento
+    printString(msg_apto)
+    
+    # Lê o Int Apartamento e armazena em $t1
+    lerInt($t1)
+    subi $t1, $t1, 1          # $t1 = apartamento (0 ou 1)
+    
+    blt $t1, $zero, inputInvalido #verifica se o numero do aptmento é válido
+    bgt $t1, 1, inputInvalido
+    
+    
+    # Calcula o índice base no array de veículos
+    sll $t2, $t0, 1          # t2 = andar x 2 = indice do primeiro apartamento do andar (ex: andar 1 = apt 2 e 3, logo o primeiro apt do andar 1 é 2)
+    add $t2, $t2, $t1        # t2 = índice do apartamento (0-23)= = somar o numero do apartamento ao endereço base 
+    li $t3, 60               # t3 = Tamanho do espaço reservado para cada apartamento (60 bytes = 30 bytes por veículo x no máximo 2)
+    mul $t2, $t2, $t3        # calcula o endereço no vetor veiculos contando 60 bytes para cada, (apt 3 x 60 = 180 = posição inicial do terceiro apt)
+    
+    # Verifica quantos veículos já estão cadastrados no apt
+    li $t4, 0                 # Contador de veículos
+    li $t5, 30                # Tamanho de um "veiculo" (30 bytes)
+    
+    printString(msg_veiculo)
+    lerInt($t7)           # $t7 = tipo de veículo (1=carro, 2=moto)
+    blt $t7, 1, tipoVeiculoInvalido #verifica se o numero do opção é válida
+    bgt $t7, 2, tipoVeiculoInvalido
+    beq $t7, 1, verifica_carro # Se for carro, verifica se já existe um carro registrado    
+    
+verifica_moto:
+
+    lb $t6, veiculos($t2)   # carrega em t6 o byte na posição indicada por t2 em veiculos
+    beqz $t6, cadastrar_moto # se t6 for 0, significa que não está ocupado, portanto pula para registrar veículo
+    addi $t4, $t4, 1          # caso t6 não seja 0, temos que o endereço de memória está com outro veículo. Por isso, incrementa o contador de moradores
+    add $t2, $t2, $t5         # t2 = endereço do próximo espaço para veiculo obtido ao soma o endereço atual do vetor com 30 (espaço de um veiculo)
+    bne $t4, 2, verifica_moto # Continua verificando se menos de 6 moradores
+    
+vagas_esgotadas:    
+    # Se já houver 2 veiculos não há mais vagas, printa e volta pro loop
+    printString(msg_vagas_ocupadas)
+    j printBanner
+
+cadastrar_moto:
+    
+    # Se for moto
+    printString(msg_modelo)
+    
+    li $v0, 8                 # Lê o modelo da moto
+    la $a0, veiculos($t2)     #armazena em veiculos(t2)
+    li $a1, 20                # Tamanho do modelo é 20 bytes
+    syscall
+    
+    printString(msg_placa)
+    
+    li $v0, 8                 # Lê a placa da moto
+    la $a0, veiculos($t2)      #armazena em veiculos(t2)
+    addi $a0, $a0, 20         # Offset para a placa (20 bytes após o modelo)
+    li $a1, 10                # Tamanho da placa é 10 bytes
+    syscall
+    
+    printString(msg_moto_registrada)             
+
+    j printBanner
+    
+    verifica_carro:
+    # Se o espaço já estiver ocupado (ou seja, um carro já registrado)
+    lb $t6, veiculos($t2)   # Verifica se a posição está ocupada
+    bnez $t6, carro_existente
+    
+    # Se não estiver ocupado, registra o carro
+    printString(msg_modelo)
+    
+    li $v0, 8               # Lê o modelo do carro
+    la $a0, veiculos($t2)
+    li $a1, 20              # Tamanho do modelo é 20 bytes
+    syscall
+    
+    printString(msg_placa)
+    
+    addi $t2, $t2, 20       # Offset para a placa (20 bytes após o modelo)
+    li $v0, 8               # Lê a placa do carro
+    la $a0, veiculos($t2)
+    li $a1, 10              # Tamanho da placa é 10 bytes
+    syscall
+    
+    printString(msg_carro_registrado)
+
+    # Preenche os 30 bytes restantes com 'x'
+    addi $t2, $t2, 10       # Offset para os 30 bytes restantes (após modelo + placa)
+    li $t3, 30              # Número de bytes a preencher
+    li $t4, 'x'             # Caractere 'x' ASCII
+
+preenche_espaco:
+    sb $t4, veiculos($t2)          # Armazena 'x' no espaço
+    addi $t2, $t2, 1        # Avança para o próximo byte
+    subi $t3, $t3, 1        # Decrementa contador
+    bnez $t3, preenche_espaco  # Continua preenchendo até completar 30 bytes
+    
+   j printBanner
+    
+carro_existente:
+    printString(msg_carro_existente)
+    j printBanner                # Volta ao início
+  
+    
+comparaAddMorador:
     # Verifica se o comando é "addMorador"
     la $a0, input             # Carrega o endereço do input em $a0
     la $a1, addMorador        # Carrega o endereço do comando "addMorador" em $a1
@@ -190,3 +319,7 @@ j printBanner #volta para printBanner
 inputInvalido: #número do andar ou apartamento inválido
 printString apInvalido #printa mensagem quando não há um apto ou andar identificado
 j printBanner #volta pra printBanner
+
+tipoVeiculoInvalido:
+printString tipoInvalido
+j printBanner
