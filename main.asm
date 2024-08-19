@@ -1,5 +1,9 @@
-#Grupo: Gabriel Cisneiros, Lucas Aurélio e Marcela Hadassa
-
+#Grupo: Gabriel Cisneiros, Lucas Aurélio e Marcela Hadassa (Equipe Rocket)
+#Projeto: 1ª VA
+#Disciplina: Arquitetura e organização de computadores
+#Semestre letivo: 2024.1
+#Arquivo: Main
+#Descrição: Sistema com todos as funcionalidades
 
 #macro que printa uma string utilizando o endereço dela como variavel
 .macro printString %endereco_str
@@ -29,7 +33,7 @@ veiculos:     .space 1440   # 12 andares x 2 apartamentos por andar x  30 bytes 
 input:     .space 100         #espaço reservado para o input do usuário
 mensagemPrintar:  .space 100  #espaço reservado para o print da mensagem
 
-banner:     .asciiz "GLM-shell>> "
+banner:     .asciiz "\nGLM-shell>> "
 comandoSair:   .asciiz "exit"
 addMorador:  .asciiz "addMorador"
 newline:    .asciiz "\n"
@@ -52,14 +56,21 @@ msg_carro_registrado: .asciiz "\nCarro registrado com sucesso!\n"
 msg_moto_registrada:  .asciiz "\nMoto registrada com sucesso!\n"
 msg_carro_existente:  .asciiz "\nEste apartamento não pode registrar um carro.\n"
 msg_motos_existentes: .asciiz "\nEste apartamento já possui duas motos cadastradas. Não pode registrar mais veículos.\n"
-
+msg_vazios:         .asciiz "Numero de apartamentos vazios: "
+msg:        .asciiz "\nPorcentagens de apartamentos ocupados: ("
+porcentagem: .asciiz "%)"
+relatorio: .asciiz "relatorio"
 .text
+
+# Inicializa contadores
+    li $s0, 24  # Total de apartamentos (24)
+    li $s1, 0   # Contador de apartamentos ocupados
 
 # Loop principal do shell
 printBanner:
     
     printString banner #imprime o banner no terminal com as iniciais do grupo
-
+ 
     lerString input, 100 #recebe e lê o input do usuário
 
     la $t0, input  #carrega o endereço do input em t0
@@ -90,7 +101,7 @@ comparaAddAuto:
 la $a0, input
 la $a1, addAuto
 jal strcmp
-bnez $v0, comparaAddMorador
+bnez $v0, comparaRelatorio
 
     # Solicita o andar
     printString(msg_andar)
@@ -203,8 +214,43 @@ preenche_espaco:
 carro_existente:
     printString(msg_carro_existente)
     j printBanner                # Volta ao início
-  
+ 
+comparaRelatorio: 
+  # Verifica se o comando é "addMorador"
+    la $a0, input             # Carrega o endereço do input em $a0
+    la $a1, relatorio        # Carrega o endereço do comando "relatorio" em $a1
+    jal strcmp                # Chama a função strcmp
+    bnez $v0, comparaAddMorador   # Se não for "addMorador", entra em printComandoInvalido
+
+
+    # Calcular a porcentagem: (parte / total) * 100
+    mul $t2, $s1, 100       # $t2 = parte * 100
+    div $t2, $s0            # $t2 = (parte * 100) / total
+    mflo $t2                # Mover o resultado da divisão para $t2
     
+    # Calcula e imprime o número de apartamentos vazios
+    sub $t7, $s0, $s1         # $t7 = Total de apartamentos - ocupados
+    printString(msg_vazios)   # Imprime mensagem de apts vazios
+    move $a0, $t7
+    li $v0, 1
+    syscall
+    
+    printString msg
+   
+    # Converter e imprimir o número (a porcentagem)
+    move $a0, $t2           # Move o valor calculado para $a0
+    jal printInteger        # Chama função para imprimir o valor
+    printString porcentagem
+    
+    
+   j printBanner
+   
+# Função para imprimir um número inteiro
+printInteger:
+    li $v0, 1               # syscall para imprimir inteiro
+    syscall
+    jr $ra                  # Retorna à função chamadora
+                
 comparaAddMorador:
     # Verifica se o comando é "addMorador"
     la $a0, input             # Carrega o endereço do input em $a0
@@ -240,7 +286,7 @@ comparaAddMorador:
     
 check_moradores:
     lb $t6, moradores($t2)    # carrega em $t6 o byte na posição indicada por $t2 em moradores
-    beqz $t6, registrar       # se $t6 for 0, apartamento está vazio, registra o morador
+    beqz $t6, verificarNovaOcupacao       # se $t6 for 0, apartamento está vazio, registra o morador
     addi $t4, $t4, 1          # incrementa contador de moradores
     add $t2, $t2, $t5         # incrementa $t2 para próximo espaço de morador
     bne $t4, 6, check_moradores # se não ultrapassar 6 moradores, verifica o próximo
@@ -249,16 +295,26 @@ check_moradores:
     printString(msg_apto_cheio) #printa mensagem de apartamento cheio
     
     j printBanner             # Volta para o banner principal
-
+    
+    verificarNovaOcupacao:
+    beqz $t4, novo_morador
+    j registrar
+    
+    novo_morador:
+    addi $s1, $s1, 1  # Incrementa o contador de apartamentos ocupados
+    j registrar
+    
+    
 registrar:
-    # Registrar novo morador
+    # Registrar novo morador  
     printString(msg_registrar)
  
     li $v0, 8                 # Carrega operação para ler string
     la $a0, moradores($t2)    # Endereço onde será armazenado
     li $a1, 40                # Limite de bytes
     syscall                   # Lê a string e armazena
-    
+     
+    printString msg_morador_registrado    
 
     j printBanner             # Volta para o banner principal
 
