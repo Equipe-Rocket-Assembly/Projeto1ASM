@@ -35,12 +35,10 @@ mensagemPrintar:  .space 100  #espaço reservado para o print da mensagem
 banner:     .asciiz "\nGLM-shell>> "
 comandoSair:   .asciiz "exit"
 # modificar caminho caso seja necessário, pois não existe caminho relativo
-path_formatar: .asciiz "/home/gabriel/Projetos/Projeto1ASM/Dados-Salvos/formatar.txt"
 path_moradores:  .asciiz "/home/gabriel/Projetos/Projeto1ASM/Dados-Salvos/moradores.txt"
 path_veiculos:  .asciiz "/home/gabriel/Projetos/Projeto1ASM/Dados-Salvos/veiculos.txt"
 addMorador:  .asciiz "addMorador"
 salvar:   .asciiz "salvar"
-recarregar: .asciiz "recarregar"
 formatar: .asciiz "formatar"
 newline:    .asciiz "\n"
 limparAp:     .asciiz "limparAp"
@@ -406,49 +404,6 @@ comparaRecarregar:
 	move $a0, $s0 # move o descritor do arquivo para $a0
 	la $a1, veiculos # carrega a string de veiculos em $a1
 	li $a2, 1440 # define o numero de bytes a serem escritos como 1440 (numero de bytes de veiculos)
-	syscall # lê os veiculos do arquivo
-
-	li  $v0, 16 # carrega o código de serviço 16 (fechar arquivo)
-	move $a0, $s0 # move o descritor do arquivo para o registrador $a0
-	syscall # fecha o arquivo
-	
-	j printBanner
-
-comparaFormatar:
-	# verifica se o comando é formatar
-	la $a0, input # Carrega o endereço do input em $a0
-	la $a1, formatar # Carrega o endereço do comando "formatar" em $a1
-	jal strcmp # Chama a função strcmp
-	bnez $v0, comparaAddMorador # Se não for "formatar", entra em comparaAddMorador
-    
-	li $v0, 13 # carrega o codigo de serviço 13 (abrir arquivo)
-	la $a0, path_formatar # passa o caminho para o arquivo formatar.txt
-	li $a1, 0 # carrega o valor 0 (modo de leitura) em $a1
-	syscall # abre o arquivo
-
-	move $s0, $v0
-
-	li $v0, 14 # carrega o codigo de serviço 14 (ler do arquivo)
-	move $a0, $s0 # move o descritor do arquivo para $a0
-	la $a1, moradores # carrega a string de moradores em $a1
-	li $a2, 0 # define o numero de bytes a serem lidos como 0 (numero de bytes para formatar)
-	syscall # lê os moradores do arquivo de formatação
-
-	li  $v0, 16 # carrega o código de serviço 16 (fechar arquivo)
-	move $a0, $s0 # move o descritor do arquivo para o registrador $a0
-	syscall # fecha o arquivo
-
-	li $v0, 13 # carrega o codigo de serviço 13 (abrir arquivo)
-	la $a0, path_formatar # passa o caminho para o arquivo formatar.txt
-	li $a1, 0 # carrega o valor 0 (modo de leitura) em $a1
-	syscall # abre o arquivo
-
-	move $s0, $v0
-
-	li $v0, 14 # carrega o codigo de serviço 14 (ler do arquivo)
-	move $a0, $s0 # move o descritor do arquivo para $a0
-	la $a1, veiculos # carrega a string de veiculos em $a1
-	li $a2, 0 # define o numero de bytes a serem escritos como 0 (numero de bytes para formatação)
 	syscall # lê os veiculos do arquivo
 
 	li  $v0, 16 # carrega o código de serviço 16 (fechar arquivo)
