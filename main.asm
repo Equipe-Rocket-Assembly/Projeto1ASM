@@ -39,7 +39,7 @@ path_moradores:  .asciiz "/home/gabriel/Projetos/Projeto1ASM/Dados-Salvos/morado
 path_veiculos:  .asciiz "/home/gabriel/Projetos/Projeto1ASM/Dados-Salvos/veiculos.txt"
 addMorador:  .asciiz "addMorador"
 salvar:   .asciiz "salvar"
-formatar: .asciiz "formatar"
+recarregar: .asciiz "recarregar"
 newline:    .asciiz "\n"
 limparAp:     .asciiz "limparAp"
 infoAp:       .asciiz "infoAp"
@@ -374,7 +374,7 @@ comparaRecarregar:
 	la $a0, input # Carrega o endereço do input em $a0
 	la $a1, recarregar # Carrega o endereço do comando "recarregar" em $a1
 	jal strcmp # Chama a função strcmp
-	bnez $v0, comparaFormatar # Se não for "recarregar", entra em comparaFormatar
+	bnez $v0, comparaAddMorador # Se não for "recarregar", entra em comparaAddMorador
     
 	li $v0, 13 # carrega o codigo de serviço 13 (abrir arquivo)
 	la $a0, path_moradores # passa o caminho para o arquivo moradores.txt
