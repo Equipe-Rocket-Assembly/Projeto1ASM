@@ -43,6 +43,9 @@ recarregar: .asciiz "recarregar"
 newline:    .asciiz "\n"
 limparAp:     .asciiz "limparAp"
 infoAp:       .asciiz "infoAp"
+numApto: .asciiz "AP: "
+msg_apto_vazio: .asciiz "Apartamentos vazios."
+msg_moradores: .asciiz "Moradores: \n"
 comandoInvalido: .asciiz "Comando inválido.\n"
 msg_apto_cheio:  .asciiz "Apartamento cheio! Nao pode adicionar mais moradores.\n"
 msg_morador_registrado: .asciiz "Morador cadastrado com sucesso!"
@@ -374,7 +377,7 @@ comparaRecarregar:
 	la $a0, input # Carrega o endereço do input em $a0
 	la $a1, recarregar # Carrega o endereço do comando "recarregar" em $a1
 	jal strcmp # Chama a função strcmp
-	bnez $v0, comparaAddMorador # Se não for "recarregar", entra em comparaAddMorador
+	bnez $v0, comparaInfoAp # Se não for "recarregar", entra em comparaAddMorador
     
 	li $v0, 13 # carrega o codigo de serviço 13 (abrir arquivo)
 	la $a0, path_moradores # passa o caminho para o arquivo moradores.txt
@@ -411,6 +414,101 @@ comparaRecarregar:
 	syscall # fecha o arquivo
 	
 	j printBanner
+
+
+	comparaInfoAp:
+	la $a0, input #carrega o que está no endereço de input
+	la $a1, infoAp #coloca as strings nos registradores certos para a função strcmp
+	jal strcmp #Compara o comando pra saber se é o comando "infoAp"
+	bnez $v0, comparaAddMorador #Se não for, pula para comparaAddMorador
+
+ 
+    printString msg_andar #printa o que está em msg_andar
+   
+    li $v0, 5
+    syscall
+    subi $t0, $v0, 1           # $t0 = andar - 1
+
+    # Verificar se o andar é válido
+    blt $t0, $zero, inputInvalido
+    bgt $t0, 11, inputInvalido
+
+    #recebe o input do usuário para o número do apartamento
+   	printString msg_apto
+  	
+	#ler o numero que o usuário digitou
+    li $v0, 5
+    syscall
+
+    subi $t1, $v0, 1           #$t1 = apartamento - 1
+
+
+    #verifica se o número do apartamento é válido
+    blt $t1, $zero, inputInvalido
+    bgt $t1, 1, inputInvalido
+
+    #calcula o índice do apartamento
+    sll $t2, $t0, 1            #$t2 = andar * 2
+    add $t2, $t2, $t1          #$t2 = índice do apartamento (0-23)
+    li $t3, 240                #$t3 = 240 bytes por apartamento
+    mul $t2, $t2, $t3          #$t2 = endereço no vetor moradores
+    la $t8, moradores          #carrega base do vetor moradores
+    add $t2, $t2, $t8          #$t2 = endereço do apartamento selecionado
+
+    #exibe o número do apartamento
+   	printString numApto 
+    li $v0, 1
+    add $a0, $t0, $zero
+    li $t9, 10
+    add $a0, $a0, $t1          #$a0 = número do apartamento
+    syscall
+
+	printString newline #printa nova linha
+
+    #verifica se o apartamento está vazio
+    li $t4, 240                #números de bytes a serem verificados
+    move $t5, $zero            #contagem para verificar se todos os bytes são zero
+
+checkVazio:
+    beq $t4, $zero, printAptoVazio  #se $t4 == 0, apartamento está vazio
+    lb $t6, 0($t2)                #carrega o próximo byte em $t6
+    bne $t6, $zero, printMsgMoradores #se algum byte não é zero, vá para imprimir moradores
+    addi $t2, $t2, 1              #incrementa o endereço do próximo byte
+    subi $t4, $t4, 1              #decrementa o contador de bytes
+    j checkVazio                #repete o loop
+
+#imprime apartamento vazio 
+printAptoVazio:
+   	printString msg_apto_vazio #printa mensagem de apartamento vazio
+    j comparaFinal              #entra em comparaFinal
+
+#imprime moradores
+printMsgMoradores:
+    printString msg_moradores      #imprime o que está em msg_moradores
+
+    li $t7, 6                     #número máximo de moradores
+    li $t9, 40                    #tamanho de cada bloco de 40 bytes para um morador
+    move $t4, $zero               #inicializa o contador de moradores
+
+printMoradores:
+    beq $t4, $t7, comparaFinal     #se já imprimiu todos os moradores possíveis, entra compara final
+    lb $t6, 0($t2)                #verifica o primeiro byte do morador
+    beq $t6, $zero, proximoMorador   #se o primeiro byte for zero (vazio), pula para o próximo morador
+
+    li $v0, 4
+    move $a0, $t2                 #$t2 aponta para o início do nome do morador
+    syscall
+
+    #printString newline #imprime uma nova linha
+
+proximoMorador:
+    add $t2, $t2, $t9            #move para o próximo morador (incremento de 40 bytes)
+    addi $t4, $t4, 1              #incrementa o contador de moradores
+    j printMoradores                #repete o loop para o próximo morador
+
+comparaFinal:
+
+j printBanner             
 
 comparaAddMorador:
 
@@ -510,7 +608,43 @@ strcmp:
 comparaLoop:
     lb $t0, 0($a0)             #carrega um byte da posição n de a0 em t0
     lb $t1, 0($a1)             #carrega um byte da posição n de a1 em t1
-    beq $t0, $t1, procuraFinal #se forem iguais, entra em procurarFinal
+    beq $t0, $t1, procuraFinal #se forem iguais, entra em procurarFinal#Grupo: Gabriel Cisneiros, Lucas Aurélio e Marcela Hadassa (Equipe Rocket)
+#Projeto: 1ª VA
+#Disciplina: Arquitetura e organização de computadores
+#Semestre letivo: 2024.1
+#Arquivo: Main
+#Descrição: Sistema com todos as funcionalidades
+
+#macro que printa uma string utilizando o endereço dela como variavel
+.macro printString %endereco_str
+    li $v0, 4
+    la $a0, %endereco_str #carrega o end da string em $a0
+    syscall
+.end_macro
+
+.macro lerString %endereco, %limiteChar
+    li $v0, 8          # Syscall para leitura de string
+    la $a0, %endereco     # Carregar o endereço da string
+    li $a1, %limiteChar     # Carregar o limite de caracteres
+    syscall            # Chamada de sistema
+.end_macro
+
+#macro que ler um inteiro e usa o endereço como variavel
+.macro lerInt %endereco
+    li $v0, 5
+    syscall
+    move %endereco, $v0
+.end_macro
+
+.data
+moradores:  .space 5760   # 12 andares x 2 apartamentos por andar x 6 moradores x 40 bytes (nome) por morador
+veiculos:     .space 1440   # 12 andares x 2 apartamentos por andar x  30 bytes (20 bytes modelo + 10 bytes placa) por veiculo x 2 motos (maior espaço possível)
+input:     .space 100         #espaço reservado para o input do usuário
+mensagemPrintar:  .space 100  #espaço reservado para o print da mensagem
+
+banner:     .asciiz "\nGLM-shell>> "
+comandoSair:   .asciiz "exit"
+
     li $v0, 1                  #strings são diferentes, carrega 1 em v0
     j final #pula pra final
 
