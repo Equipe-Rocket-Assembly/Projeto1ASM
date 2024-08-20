@@ -37,6 +37,7 @@ banner:     .asciiz "\nGLM-shell>> "
 comandoSair:   .asciiz "exit"
 addMorador:  .asciiz "addMorador"
 newline:    .asciiz "\n"
+limparAp:     .asciiz "limparAp"
 comandoInvalido: .asciiz "Comando inválido.\n"
 msg_apto_cheio:  .asciiz "Apartamento cheio! Nao pode adicionar mais moradores.\n"
 msg_morador_registrado: .asciiz "Morador cadastrado com sucesso!"
@@ -60,6 +61,7 @@ msg_vazios:         .asciiz "Numero de apartamentos vazios: "
 msg:        .asciiz "\nPorcentagens de apartamentos ocupados: ("
 porcentagem: .asciiz "%)"
 relatorio: .asciiz "relatorio"
+apartamentoLimpo: .asciiz "Apartamento limpo com sucesso"
 .text
 
 # Inicializa contadores
@@ -220,7 +222,7 @@ comparaRelatorio:
     la $a0, input             # Carrega o endereço do input em $a0
     la $a1, relatorio        # Carrega o endereço do comando "relatorio" em $a1
     jal strcmp                # Chama a função strcmp
-    bnez $v0, comparaAddMorador   # Se não for "addMorador", entra em printComandoInvalido
+    bnez $v0, comparaLimparAp   # Se não for "addMorador", entra em printComandoInvalido
 
 
     # Calcular a porcentagem: (parte / total) * 100
@@ -250,8 +252,73 @@ printInteger:
     li $v0, 1               # syscall para imprimir inteiro
     syscall
     jr $ra                  # Retorna à função chamadora
-                
+
+
+comparaLimparAp:
+
+	
+	la $a0, input #coloca
+	la $a1, limparAp #coloca as strings nos registradores certos para a função strcmp
+	jal strcmp #Compara o comando pra saber se é o comando "limparAp"
+	bnez $v0, comparaAddMorador #Se não for, pula para comparaAddMorador
+
+    printString (msg_andar) # Pede o andar do novo morador
+    lerInt($t0) # lê efetivamente o Andar e armazena em t0
+    subi $t0, $t0, 1 #subtrai o inteiro digitado para ficar de 0-11
+    
+  
+    blt $t0, $zero, inputInvalido #verifica se o numero do aptmento é válido
+    bgt $t0, 11, inputInvalido
+    
+    printString(msg_apto) # Pede o apartamento do novo morador
+    lerInt($t1) # lê efetivamente o número do Apartamento e armazena em t1
+    subi $t1, $t1, 1 # $t1 = número apartamento digitado - 1 = 0/1
+    
+    blt $t1, $zero, inputInvalido  #verifica se o numero do andar é válido
+    bgt $t1, 1, inputInvalido
+    
+     # Calcula posição no array de moradores para zerar o apartamento
+    sll $t2, $t0, 1           # t2 = andar x 2 = índice do primeiro apartamento do andar 
+    add $t2, $t2, $t1         # t2 = índice do apartamento (0-23)
+    li $t3, 240               # t3 = tamanho do espaço reservado para cada apartamento (240 bytes)
+    mul $t2, $t2, $t3         # t2 = endereço no vetor moradores
+
+    # Guardar 0 nos 240 bytes referentes ao apartamento
+    li $t4, 240               # $t4 = número de bytes a serem limpos
+    li $t5, 0                # $t5 = valor a ser armazenado (0)
+
+zerarMoradores:
+    beq $t4, $zero, moradoresLimpos  # Se $t4=0, já zeramos todos os bytes do apartamento relacionado  então vai para moradoresLimpos
+    sb $t5, moradores($t2)      # Armazena o byte que está em t5 (0) na posição indicada por t2 em moradores
+    addi $t2, $t2, 1            # Passa para o byte n+1
+    subi $t4, $t4, 1            # decrementa os bytes restantes
+    j zerarMoradores            # volta pro loop
+    
+moradoresLimpos:
+
+    # Agora, calcula a posição no array para o veículo
+
+    sll $t2, $t0, 1           # t2 = andar x 2 = índice do primeiro apartamento do andar 
+    add $t2, $t2, $t1         # t2 = índice do apartamento (0-23)
+    li $t3, 60                # t3 = tamanho do espaço reservado para cada apartamento (30 bytes por veiculo x 2 veiculos =60 bytes)
+    mul $t2, $t2, $t3         # t2 = endereço no vetor moradores
+
+    li $t6, 60                # $t6 = numero de bytes a serem limpos
+    li $t7, 0                 # $t7 = valor a ser armazenado (0)
+
+zerarVeiculo:
+    beq $t6, $zero, veiculosLimpos  	 # Se $t6 == 0, acabamos de zerar os veiculos do ap e vamos para veiculosLimpos
+    sb $t7, veiculos($t2)               # Armazena 0 na posição t2 de veiculos
+    addi $t2, $t2, 1                    # Incrementa para n+1
+    subi $t6, $t6, 1                    # Decrementa os espaços restantes
+    j zerarVeiculo                      # volta pro loop
+
+veiculosLimpos: #veiculos já limpos com sucesso
+    printString(apartamentoLimpo) #printar a msg
+   j printBanner
+                           
 comparaAddMorador:
+
     # Verifica se o comando é "addMorador"
     la $a0, input             # Carrega o endereço do input em $a0
     la $a1, addMorador        # Carrega o endereço do comando "addMorador" em $a1
@@ -263,7 +330,6 @@ comparaAddMorador:
     lerInt($t0) # lê efetivamente o Andar e armazena em t0
     subi $t0, $t0, 1 #subtrai o inteiro digitado para ficar de 0-11
     
-  
     blt $t0, $zero, inputInvalido #verifica se o numero do aptmento é válido
     bgt $t0, 11, inputInvalido
     
