@@ -1,4 +1,3 @@
-
 #Grupo: Gabriel Cisneiros, Lucas Aurélio e Marcela Hadassa (Equipe Rocket)
 #Projeto: 1ª VA
 #Disciplina: Arquitetura e organização de computadores
@@ -27,7 +26,6 @@
     move %endereco, $v0
 .end_macro
 
-
 .data
 moradores:  .space 5760   # 12 andares x 2 apartamentos por andar x 6 moradores x 40 bytes (nome) por morador
 veiculos:     .space 1440   # 12 andares x 2 apartamentos por andar x  30 bytes (20 bytes modelo + 10 bytes placa) por veiculo x 2 motos (maior espaço possível)
@@ -37,10 +35,13 @@ mensagemPrintar:  .space 100  #espaço reservado para o print da mensagem
 banner:     .asciiz "\nGLM-shell>> "
 comandoSair:   .asciiz "exit"
 # modificar caminho caso seja necessário, pois não existe caminho relativo
+path_formatar: .asciiz "/home/gabriel/Projetos/Projeto1ASM/Dados-Salvos/formatar.txt"
 path_moradores:  .asciiz "/home/gabriel/Projetos/Projeto1ASM/Dados-Salvos/moradores.txt"
 path_veiculos:  .asciiz "/home/gabriel/Projetos/Projeto1ASM/Dados-Salvos/veiculos.txt"
 addMorador:  .asciiz "addMorador"
 salvar:   .asciiz "salvar"
+recarregar: .asciiz "recarregar"
+formatar: .asciiz "formatar"
 newline:    .asciiz "\n"
 limparAp:     .asciiz "limparAp"
 infoAp:       .asciiz "infoAp"
@@ -328,8 +329,9 @@ comparaSalvar:
 	la $a0, input # Carrega o endereço do input em $a0
 	la $a1, salvar # Carrega o endereço do comando "salvar" em $a1
 	jal strcmp # Chama a função strcmp
-	bnez $v0, comparaAddMorador # Se não for "salvar", entra em comparaAddMorador
+	bnez $v0, comparaRecarregar # Se não for "salvar", entra em comparaAddMorador
 	
+	# salva moradores
 	li $v0, 13 # carrega o codigo de serviço 13 (abrir arquivo)
 	la $a0, path_moradores # passa o caminho para o arquivo moradores.txt
 	li $a1, 1 # carrega o valor 1 (modo de escrita) em $a1
@@ -348,6 +350,7 @@ comparaSalvar:
 	move $a0, $s0 # move o descritor do arquivo para o registrador $a0
 	syscall # fecha o arquivo
 	
+	# salva veículos
 	li $v0, 13 # carrega o codigo de serviço 13 (abrir arquivo)
 	la $a0, path_veiculos # passa o caminho para o arquivo veiculos.txt
 	li $a1, 1 # carrega o valor 1 (modo de escrita) em $a1
@@ -366,11 +369,94 @@ comparaSalvar:
 	move $a0, $s0 # move o descritor do arquivo para o registrador $a0
 	syscall # fecha o arquivo
 	
-	li  $v0, 16
-	move $a0, $s0
-	syscall
 	j printBanner
-      
+
+comparaRecarregar:
+	# verifica se o comando é recarregar
+	la $a0, input # Carrega o endereço do input em $a0
+	la $a1, recarregar # Carrega o endereço do comando "recarregar" em $a1
+	jal strcmp # Chama a função strcmp
+	bnez $v0, comparaFormatar # Se não for "recarregar", entra em comparaFormatar
+    
+	li $v0, 13 # carrega o codigo de serviço 13 (abrir arquivo)
+	la $a0, path_moradores # passa o caminho para o arquivo moradores.txt
+	li $a1, 0 # carrega o valor 0 (modo de leitura) em $a1
+	syscall # abre o arquivo
+
+	move $s0, $v0
+
+	li $v0, 14 # carrega o codigo de serviço 14 (ler do arquivo)
+	move $a0, $s0 # move o descritor do arquivo para $a0
+	la $a1, moradores # carrega a string de moradores em $a1
+	li $a2, 5760 # define o numero de bytes a serem escritos como 5760 (numero de bytes de moradores)
+	syscall # lê os veiculos do arquivo
+
+	li  $v0, 16 # carrega o código de serviço 16 (fechar arquivo)
+	move $a0, $s0 # move o descritor do arquivo para o registrador $a0
+	syscall # fecha o arquivo
+
+	li $v0, 13 # carrega o codigo de serviço 13 (abrir arquivo)
+	la $a0, path_veiculos # passa o caminho para o arquivo veiculos.txt
+	li $a1, 0 # carrega o valor 0 (modo de leitura) em $a1
+	syscall # abre o arquivo
+
+	move $s0, $v0
+
+	li $v0, 14 # carrega o codigo de serviço 14 (ler do arquivo)
+	move $a0, $s0 # move o descritor do arquivo para $a0
+	la $a1, veiculos # carrega a string de veiculos em $a1
+	li $a2, 1440 # define o numero de bytes a serem escritos como 1440 (numero de bytes de veiculos)
+	syscall # lê os veiculos do arquivo
+
+	li  $v0, 16 # carrega o código de serviço 16 (fechar arquivo)
+	move $a0, $s0 # move o descritor do arquivo para o registrador $a0
+	syscall # fecha o arquivo
+	
+	j printBanner
+
+comparaFormatar:
+	# verifica se o comando é formatar
+	la $a0, input # Carrega o endereço do input em $a0
+	la $a1, formatar # Carrega o endereço do comando "formatar" em $a1
+	jal strcmp # Chama a função strcmp
+	bnez $v0, comparaAddMorador # Se não for "formatar", entra em comparaAddMorador
+    
+	li $v0, 13 # carrega o codigo de serviço 13 (abrir arquivo)
+	la $a0, path_formatar # passa o caminho para o arquivo formatar.txt
+	li $a1, 0 # carrega o valor 0 (modo de leitura) em $a1
+	syscall # abre o arquivo
+
+	move $s0, $v0
+
+	li $v0, 14 # carrega o codigo de serviço 14 (ler do arquivo)
+	move $a0, $s0 # move o descritor do arquivo para $a0
+	la $a1, moradores # carrega a string de moradores em $a1
+	li $a2, 0 # define o numero de bytes a serem lidos como 0 (numero de bytes para formatar)
+	syscall # lê os moradores do arquivo de formatação
+
+	li  $v0, 16 # carrega o código de serviço 16 (fechar arquivo)
+	move $a0, $s0 # move o descritor do arquivo para o registrador $a0
+	syscall # fecha o arquivo
+
+	li $v0, 13 # carrega o codigo de serviço 13 (abrir arquivo)
+	la $a0, path_formatar # passa o caminho para o arquivo formatar.txt
+	li $a1, 0 # carrega o valor 0 (modo de leitura) em $a1
+	syscall # abre o arquivo
+
+	move $s0, $v0
+
+	li $v0, 14 # carrega o codigo de serviço 14 (ler do arquivo)
+	move $a0, $s0 # move o descritor do arquivo para $a0
+	la $a1, veiculos # carrega a string de veiculos em $a1
+	li $a2, 0 # define o numero de bytes a serem escritos como 0 (numero de bytes para formatação)
+	syscall # lê os veiculos do arquivo
+
+	li  $v0, 16 # carrega o código de serviço 16 (fechar arquivo)
+	move $a0, $s0 # move o descritor do arquivo para o registrador $a0
+	syscall # fecha o arquivo
+	
+	j printBanner
+
 comparaAddMorador:
 
     # Verifica se o comando é "addMorador"
@@ -399,7 +485,7 @@ comparaAddMorador:
     add $t2, $t2, $t1         # t2 = índice do apartamento (0-23)
     li $t3, 240               # t3 = tamanho do espaço reservado para cada apartamento (240 bytes)
     mul $t2, $t2, $t3         # t2 = endereço no vetor moradores
-    
+    	
     # Calcula quantos moradores existem no apartamento
     li $t4, 0                 # t4 = quantidade de moradores (começa em 0)
     li $t5, 40                # t5 = tamanho de um nome (40 bytes)
