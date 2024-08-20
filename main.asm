@@ -1,3 +1,4 @@
+
 #Grupo: Gabriel Cisneiros, Lucas Aurélio e Marcela Hadassa (Equipe Rocket)
 #Projeto: 1ª VA
 #Disciplina: Arquitetura e organização de computadores
@@ -35,7 +36,11 @@ mensagemPrintar:  .space 100  #espaço reservado para o print da mensagem
 
 banner:     .asciiz "\nGLM-shell>> "
 comandoSair:   .asciiz "exit"
+# modificar caminho caso seja necessário, pois não existe caminho relativo
+path_moradores:  .asciiz "/home/gabriel/Projetos/Projeto1ASM/Dados-Salvos/moradores.txt"
+path_veiculos:  .asciiz "/home/gabriel/Projetos/Projeto1ASM/Dados-Salvos/veiculos.txt"
 addMorador:  .asciiz "addMorador"
+salvar:   .asciiz "salvar"
 newline:    .asciiz "\n"
 limparAp:     .asciiz "limparAp"
 infoAp:       .asciiz "infoAp"
@@ -223,7 +228,7 @@ comparaRelatorio:
     la $a0, input             # Carrega o endereço do input em $a0
     la $a1, relatorio        # Carrega o endereço do comando "relatorio" em $a1
     jal strcmp                # Chama a função strcmp
-    bnez $v0, comparaLimparAp   # Se não for "addMorador", entra em printComandoInvalido
+    bnez $v0, comparaLimparAp   # Se não for "relatorio", entra em comparaLimparAp
 
 
     # Calcular a porcentagem: (parte / total) * 100
@@ -260,7 +265,7 @@ comparaLimparAp:
 	la $a0, input #coloca
 	la $a1, limparAp #coloca as strings nos registradores certos para a função strcmp
 	jal strcmp #Compara o comando pra saber se é o comando "limparAp"
-	bnez $v0, comparaAddMorador #Se não for, pula para comparaAddMorador
+	bnez $v0, comparaSalvar #Se não for, pula para comparaSalvar
 
     printString (msg_andar) # Pede o andar do novo morador
     lerInt($t0) # lê efetivamente o Andar e armazena em t0
@@ -317,7 +322,55 @@ veiculosLimpos: #veiculos já limpos com sucesso
     printString(apartamentoLimpo) #printar a msg
     subi $s1, $s1, 1 #subtrai a quantidade de apts ocupados
     j printBanner
-                           
+
+comparaSalvar:
+	# verifica se o comando é salvar
+	la $a0, input # Carrega o endereço do input em $a0
+	la $a1, salvar # Carrega o endereço do comando "salvar" em $a1
+	jal strcmp # Chama a função strcmp
+	bnez $v0, comparaAddMorador # Se não for "salvar", entra em comparaAddMorador
+	
+	li $v0, 13 # carrega o codigo de serviço 13 (abrir arquivo)
+	la $a0, path_moradores # passa o caminho para o arquivo moradores.txt
+	li $a1, 1 # carrega o valor 1 (modo de escrita) em $a1
+	li $a2, 664 # define as permissões do arquivo como 664
+	syscall # abre o arquivo
+	
+	move $s0, $v0 # move o descritor do arquivo (retornado no $v0) para $s0
+	
+	li $v0, 15 # carrega o código de serviço 15 (escrever em arquivo)
+	move $a0, $s0 # move o descritor do arquivo para o registrador $a0
+	la $a1, moradores # Carrega o endereço da string moradores no registrador $a1
+	li $a2, 5760 # define o numero de bytes a serem escritos como 5760 (numero de bytes de moradores)
+	syscall # escreve a string moradores em moradores.txt
+	
+	li  $v0, 16 # carrega o código de serviço 16 (fechar arquivo)
+	move $a0, $s0 # move o descritor do arquivo para o registrador $a0
+	syscall # fecha o arquivo
+	
+	li $v0, 13 # carrega o codigo de serviço 13 (abrir arquivo)
+	la $a0, path_veiculos # passa o caminho para o arquivo veiculos.txt
+	li $a1, 1 # carrega o valor 1 (modo de escrita) em $a1
+	li $a2, 664 # define as permissões do arquivo como 664
+	syscall # abre o arquivo
+	
+	move $s0, $v0 # move o descritor do arquivo (retornado no $v0) para $s0
+	
+	li $v0, 15 # carrega o código de serviço 15 (escrever em arquivo)
+	move $a0, $s0 # move o descritor do arquivo para o registrador $a0
+	la $a1, veiculos # carrega o endereço da string veiculos no registrador $a1
+	li $a2, 1440 # define o numero de bytes a serem escritos como 1440 (numero de bytes de veiculos)
+	syscall # escreve a string veiculos em veiculos.txt
+	
+	li  $v0, 16 # carrega o código de serviço 16 (fechar arquivo)
+	move $a0, $s0 # move o descritor do arquivo para o registrador $a0
+	syscall # fecha o arquivo
+	
+	li  $v0, 16
+	move $a0, $s0
+	syscall
+	j printBanner
+      
 comparaAddMorador:
 
     # Verifica se o comando é "addMorador"
