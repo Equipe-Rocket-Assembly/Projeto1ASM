@@ -608,43 +608,7 @@ strcmp:
 comparaLoop:
     lb $t0, 0($a0)             #carrega um byte da posição n de a0 em t0
     lb $t1, 0($a1)             #carrega um byte da posição n de a1 em t1
-    beq $t0, $t1, procuraFinal #se forem iguais, entra em procurarFinal#Grupo: Gabriel Cisneiros, Lucas Aurélio e Marcela Hadassa (Equipe Rocket)
-#Projeto: 1ª VA
-#Disciplina: Arquitetura e organização de computadores
-#Semestre letivo: 2024.1
-#Arquivo: Main
-#Descrição: Sistema com todos as funcionalidades
-
-#macro que printa uma string utilizando o endereço dela como variavel
-.macro printString %endereco_str
-    li $v0, 4
-    la $a0, %endereco_str #carrega o end da string em $a0
-    syscall
-.end_macro
-
-.macro lerString %endereco, %limiteChar
-    li $v0, 8          # Syscall para leitura de string
-    la $a0, %endereco     # Carregar o endereço da string
-    li $a1, %limiteChar     # Carregar o limite de caracteres
-    syscall            # Chamada de sistema
-.end_macro
-
-#macro que ler um inteiro e usa o endereço como variavel
-.macro lerInt %endereco
-    li $v0, 5
-    syscall
-    move %endereco, $v0
-.end_macro
-
-.data
-moradores:  .space 5760   # 12 andares x 2 apartamentos por andar x 6 moradores x 40 bytes (nome) por morador
-veiculos:     .space 1440   # 12 andares x 2 apartamentos por andar x  30 bytes (20 bytes modelo + 10 bytes placa) por veiculo x 2 motos (maior espaço possível)
-input:     .space 100         #espaço reservado para o input do usuário
-mensagemPrintar:  .space 100  #espaço reservado para o print da mensagem
-
-banner:     .asciiz "\nGLM-shell>> "
-comandoSair:   .asciiz "exit"
-
+    beq $t0, $t1, procuraFinal #se forem iguais, entra em procuraFinal
     li $v0, 1                  #strings são diferentes, carrega 1 em v0
     j final #pula pra final
 
