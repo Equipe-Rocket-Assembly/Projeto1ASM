@@ -38,6 +38,7 @@ comandoSair:   .asciiz "exit"
 addMorador:  .asciiz "addMorador"
 newline:    .asciiz "\n"
 limparAp:     .asciiz "limparAp"
+infoAp:       .asciiz "infoAp"
 comandoInvalido: .asciiz "Comando inválido.\n"
 msg_apto_cheio:  .asciiz "Apartamento cheio! Nao pode adicionar mais moradores.\n"
 msg_morador_registrado: .asciiz "Morador cadastrado com sucesso!"
@@ -256,7 +257,6 @@ printInteger:
 
 comparaLimparAp:
 
-	
 	la $a0, input #coloca
 	la $a1, limparAp #coloca as strings nos registradores certos para a função strcmp
 	jal strcmp #Compara o comando pra saber se é o comando "limparAp"
@@ -315,7 +315,8 @@ zerarVeiculo:
 
 veiculosLimpos: #veiculos já limpos com sucesso
     printString(apartamentoLimpo) #printar a msg
-   j printBanner
+    subi $s1, $s1, 1 #subtrai a quantidade de apts ocupados
+    j printBanner
                            
 comparaAddMorador:
 
