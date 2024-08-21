@@ -47,6 +47,7 @@ limparAp:     .asciiz "limparAp"
 infoAp:       .asciiz "infoAp"
 infoGeral: .asciiz "infoGeral"
 numApto: .asciiz "AP: "
+veiculos_infoAp: .asciiz "Veículos: \n"
 msg_apto_vazio: .asciiz "Apartamentos vazios."
 msg_moradores: .asciiz "Moradores: \n"
 comandoInvalido: .asciiz "Comando inválido.\n"
@@ -458,97 +459,120 @@ comparaFormatar:
 	j printBanner
 
 comparaInfoAp:
-	la $a0, input #carrega o que está no endereço de input
-	la $a1, infoAp #coloca as strings nos registradores certos para a função strcmp
-	jal strcmp #Compara o comando pra saber se é o comando "infoAp"
-	bnez $v0, comparaRmvMorador #Se não for, pula para comparaAddMorador
+    la $a0, input            # Carrega o que está no endereço de input
+    la $a1, infoAp           # Coloca as strings nos registradores para a função strcmp
+    jal strcmp               # Compara o comando para saber se é o comando "infoAp"
+    bnez $v0, comparaRmvMorador # Se não for, pula para comparaAddMorador
 
-    printString msg_andar #printa o que está em msg_andar
-   
+    printString msg_andar    # Imprime a mensagem para o andar
     li $v0, 5
     syscall
-    subi $t0, $v0, 1           # $t0 = andar - 1
+    subi $t0, $v0, 1         # $t0 = andar - 1
 
     # Verificar se o andar é válido
     blt $t0, $zero, inputInvalido
     bgt $t0, 11, inputInvalido
 
-    #recebe o input do usuário para o número do apartamento
-   	printString msg_apto
-  	
-	#ler o numero que o usuário digitou
+    # Recebe o input do usuário para o número do apartamento
+    printString msg_apto
     li $v0, 5
     syscall
+    subi $t1, $v0, 1         # $t1 = apartamento - 1
 
-    subi $t1, $v0, 1           #$t1 = apartamento - 1
-
-
-    #verifica se o número do apartamento é válido
+    # Verifica se o número do apartamento é válido
     blt $t1, $zero, inputInvalido
     bgt $t1, 1, inputInvalido
 
-    #calcula o índice do apartamento
-    sll $t2, $t0, 1            #$t2 = andar * 2
-    add $t2, $t2, $t1          #$t2 = índice do apartamento (0-23)
-    li $t3, 240                #$t3 = 240 bytes por apartamento
-    mul $t2, $t2, $t3          #$t2 = endereço no vetor moradores
-    la $t8, moradores          #carrega base do vetor moradores
-    add $t2, $t2, $t8          #$t2 = endereço do apartamento selecionado
+    # Calcula o índice do apartamento
+    sll $t2, $t0, 1          # $t2 = andar * 2
+    add $t2, $t2, $t1        # $t2 = índice do apartamento (0-23)
+    li $t3, 240              # $t3 = 240 bytes por apartamento
+    mul $t2, $t2, $t3        # $t2 = endereço no vetor moradores
+    la $t8, moradores        # Carrega base do vetor moradores
+    add $t2, $t2, $t8        # $t2 = endereço do apartamento selecionado
 
-    #exibe o número do apartamento
-   	printString numApto 
+    # Exibe o número do apartamento
+    printString numApto
     li $v0, 1
-    add $a0, $t0, $zero
+    move $a0, $t0
     li $t9, 10
-    add $a0, $a0, $t1          #$a0 = número do apartamento
+    add $a0, $a0, $t1        # $a0 = número do apartamento
     syscall
+    printString newline       # Imprime uma nova linha
 
-	printString newline #printa nova linha
-
-    #verifica se o apartamento está vazio
-    li $t4, 240                #números de bytes a serem verificados
-    move $t5, $zero            #contagem para verificar se todos os bytes são zero
+    # Verifica se o apartamento está vazio
+    li $t4, 240              # Número de bytes a serem verificados
+    move $t5, $zero          # Contagem para verificar se todos os bytes são zero
 
 checkVazio:
-    beq $t4, $zero, printAptoVazio  #se $t4 == 0, apartamento está vazio
-    lb $t6, 0($t2)                #carrega o próximo byte em $t6
-    bne $t6, $zero, printMsgMoradores #se algum byte não é zero, vá para imprimir moradores
-    addi $t2, $t2, 1              #incrementa o endereço do próximo byte
-    subi $t4, $t4, 1              #decrementa o contador de bytes
-    j checkVazio                #repete o loop
+    beq $t4, $zero, printAptoVazio # Se $t4 == 0, apartamento está vazio
+    lb $t6, 0($t2)          # Carrega o próximo byte em $t6
+    bne $t6, $zero, printMsgMoradores # Se algum byte não é zero, vá para imprimir moradores
+    addi $t2, $t2, 1        # Incrementa o endereço do próximo byte
+    subi $t4, $t4, 1        # Decrementa o contador de bytes
+    j checkVazio           # Repete o loop
 
-#imprime apartamento vazio 
 printAptoVazio:
-   	printString msg_apto_vazio #printa mensagem de apartamento vazio
-    j comparaFinal              #entra em comparaFinal
+    printString msg_apto_vazio # Imprime mensagem de apartamento vazio
+    j comparaFinal         # Entra em comparaFinal
 
-#imprime moradores
 printMsgMoradores:
-    printString msg_moradores      #imprime o que está em msg_moradores
+    printString msg_moradores  # Imprime mensagem de moradores
 
-    li $t7, 6                     #número máximo de moradores
-    li $t9, 40                    #tamanho de cada bloco de 40 bytes para um morador
-    move $t4, $zero               #inicializa o contador de moradores
+    li $t7, 6              # Número máximo de moradores
+    li $t9, 40             # Tamanho de cada bloco de 40 bytes para um morador
+    move $t4, $zero        # Inicializa o contador de moradores
 
 printMoradores:
-    beq $t4, $t7, comparaFinal     #se já imprimiu todos os moradores possíveis, entra compara final
-    lb $t6, 0($t2)                #verifica o primeiro byte do morador
-    beq $t6, $zero, proximoMorador   #se o primeiro byte for zero (vazio), pula para o próximo morador
+    beq $t4, $t7, printVeiculos   # Se já imprimiu todos os moradores possíveis, entra em printVeiculos
+    lb $t6, 0($t2)        # Verifica o primeiro byte do morador
+    beq $t6, $zero, proximoMorador # Se o primeiro byte for zero (vazio), pula para o próximo morador
 
     li $v0, 4
-    move $a0, $t2                 #$t2 aponta para o início do nome do morador
+    move $a0, $t2         # $t2 aponta para o início do nome do morador
     syscall
 
-    #printString newline #imprime uma nova linha
-
 proximoMorador:
-    add $t2, $t2, $t9            #move para o próximo morador (incremento de 40 bytes)
-    addi $t4, $t4, 1              #incrementa o contador de moradores
-    j printMoradores                #repete o loop para o próximo morador          
+    add $t2, $t2, $t9    # Move para o próximo morador (incremento de 40 bytes)
+    addi $t4, $t4, 1     # Incrementa o contador de moradores
+    j printMoradores     # Repete o loop para o próximo morador
+
+printVeiculos:
+    printString veiculos_infoAp  # Imprime mensagem de veículos
+
+    li $t7, 2            # Número máximo de veículos
+    li $t8, 30           # Tamanho de cada veículo (30 bytes)
+    move $t4, $zero      # Inicializa o contador de veículos
+
+printVeiculosLoop:
+    beq $t4, $t7, comparaFinal   # Se já imprimiu todos os veículos possíveis, entra em comparaFinal
+    lb $t6, 0($t2)      # Verifica o primeiro byte do veículo
+    beq $t6, $zero, proximoVeiculo # Se o primeiro byte for zero (vazio), pula para o próximo veículo
+	
+    li $v0, 4
+    move $a0, $t2       # $t2 aponta para o início do modelo do veículo
+    syscall
+
+    #Offset para a placa do veículo
+    addi $t2, $t2, 20
+	
+
+    li $v0, 4
+    move $a0, $t2       # $t2 aponta para a placa do veículo
+    syscall
+
+    # Avança para o próximo espaço para o próximo veículo
+    addi $t2, $t2, 10   # Ajuste se necessário, dependendo do tamanho dos dados
+    addi $t4, $t4, 1    # Incrementa o contador de veículos
+    j printVeiculosLoop  # Repete o loop para o próximo veículo
+
+proximoVeiculo:
+    add $t2, $t2, $t8   # Move para o próximo veículo (incremento de 30 bytes)
+    j printVeiculosLoop # Repete o loop para o próximo veículo
 
 comparaFinal:
+    j printBanner       # Volta para o início
 
-j printBanner 
 
 comparaRmvMorador:
     la $a0, input             # Carrega o endereço do input em $a0
