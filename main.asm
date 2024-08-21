@@ -462,7 +462,7 @@ comparaInfoAp:
 	la $a0, input #carrega o que está no endereço de input
 	la $a1, infoAp #coloca as strings nos registradores certos para a função strcmp
 	jal strcmp #Compara o comando pra saber se é o comando "infoAp"
-	bnez $v0, comparaAddMorador #Se não for, pula para comparaAddMorador
+	bnez $v0, comparaRmvMorador #Se não for, pula para comparaRmvMorador
 
 
     printString msg_andar #printa o que está em msg_andar
