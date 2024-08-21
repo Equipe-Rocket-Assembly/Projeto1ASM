@@ -72,6 +72,9 @@ msg_motos_existentes: .asciiz "\nEste apartamento já possui duas motos cadastra
 msg_vazios:         .asciiz "Vazios: "
 msg_excluir: .asciiz "Digite o nome do morador a excluir: "  # Mensagem para solicitar o nome do morador a excluir
 msg_ocupados:        .asciiz "\nOcupados: "
+msg_salvar: .asciiz "\nO conteudo foi salvo com sucesso!"
+msg_recarregar: .asciiz "\nO conteudo salvo foi recarregado com sucesso!"
+msg_formatar: .asciiz "\nO conteudo em memória foi formatado"
 falhaMsg:        .asciiz "Falha: morador nao encontrado\n"
 abreParentese: .asciiz " ("
 porcentagem: .asciiz "%)"
@@ -81,6 +84,40 @@ apartamentoLimpo: .asciiz "Apartamento limpo com sucesso"
 # Inicializa contadores
     li $s0, 24  # Total de apartamentos (24)
     li $s1, 0   # Contador de apartamentos ocupados
+
+    li $v0, 13 # carrega o codigo de serviço 13 (abrir arquivo)
+    la $a0, path_moradores # passa o caminho para o arquivo moradores.txt
+    li $a1, 0 # carrega o valor 0 (modo de leitura) em $a1
+    syscall # abre o arquivo
+
+    move $s2, $v0
+
+    li $v0, 14 # carrega o codigo de serviço 14 (ler do arquivo)
+    move $a0, $s2 # move o descritor do arquivo para $a0
+    la $a1, moradores # carrega a string de moradores em $a1
+    li $a2, 5760 # define o numero de bytes a serem escritos como 5760 (numero de bytes de moradores)
+    syscall # lê os veiculos do arquivo
+
+    li  $v0, 16 # carrega o código de serviço 16 (fechar arquivo)
+    move $a0, $s2 # move o descritor do arquivo para o registrador $a0
+    syscall # fecha o arquivo
+
+    li $v0, 13 # carrega o codigo de serviço 13 (abrir arquivo)
+    la $a0, path_veiculos # passa o caminho para o arquivo veiculos.txt
+    li $a1, 0 # carrega o valor 0 (modo de leitura) em $a1
+    syscall # abre o arquivo
+
+    move $s2, $v0
+
+    li $v0, 14 # carrega o codigo de serviço 14 (ler do arquivo)
+    move $a0, $s2 # move o descritor do arquivo para $a0
+    la $a1, veiculos # carrega a string de veiculos em $a1
+    li $a2, 1440 # define o numero de bytes a serem escritos como 1440 (numero de bytes de veiculos)
+    syscall # lê os veiculos do arquivo
+
+    li  $v0, 16 # carrega o código de serviço 16 (fechar arquivo)
+    move $a0, $s2 # move o descritor do arquivo para o registrador $a0
+    syscall # fecha o arquivo
 
 # Loop principal do shell
 printBanner:
@@ -380,7 +417,8 @@ comparaSalvar:
 	li  $v0, 16 # carrega o código de serviço 16 (fechar arquivo)
 	move $a0, $s0 # move o descritor do arquivo para o registrador $a0
 	syscall # fecha o arquivo
-	
+
+	printString(msg_salvar)
 	j printBanner
 
 comparaRecarregar:
@@ -423,7 +461,8 @@ comparaRecarregar:
 	li  $v0, 16 # carrega o código de serviço 16 (fechar arquivo)
 	move $a0, $s0 # move o descritor do arquivo para o registrador $a0
 	syscall # fecha o arquivo
-	
+
+	printString(msg_recarregar)
 	j printBanner
 
 limparEndereco:
@@ -455,7 +494,8 @@ comparaFormatar:
 	la $a0, veiculos # carrega a string de veiculos em $a0
 	li $a1, 1440 # carrega os 1440 bytes de endereço de veiculos em $a1
 	jal limparEndereco # chama a função limparEndereco
-	
+
+	printString(msg_formatar)
 	j printBanner
 
 comparaInfoAp:
