@@ -253,21 +253,17 @@ cadastrar_moto:
 
 	# aqui como optamos por um espaço para todos os veículos, a lógica de carro é atendida preenchendo as outra posições com x para não permitir adicionar uma moto. 
     # portanto aqui preenchemos os 30 bytes restantes com 'x'
-
-    addi $t2, $t2, 10          # tamanho para chegar nos 30 bytes restantes (após modelo + placa)
-	li $t3, 29                 # inicia t3 com o número de bytes a preencher com 'x'
-	li $t4, 'x'                # carrega em t4 o char 'x' em ASCII
+    addi $t2, $t2, 10       # tamanho para chegar nos 30 bytes restantes (após modelo + placa)
+    li $t3, 30              # inicia t3 com o número de bytes a preencher
+    li $t4, 'x'             # carrega em t4 o char 'x' em ASCII
 
 preenche_espaco:
-    sb $t4, veiculos($t2)  # armazena 'x' no espaço indicado
-    addi $t2, $t2, 1       # passa para o próximo byte (aumenta o indice)
-    subi $t3, $t3, 1       # reduz o contador de bytes a serem preenchidos
-    bnez $t3, preenche_espaco  # volta pro loop preenchendo até completar 29 bytes (t3 = 0)
+    sb $t4, veiculos($t2)          # armazena 'x' no espaço indicado
+    addi $t2, $t2, 1        # passa para o próximo byte (aumenta o indice)
+    subi $t3, $t3, 1        # reduz o contador de bytes a serem preenchidos
+    bnez $t3, preenche_espaco  # volta pro loop preenchendo até completar 30 bytes (t3 = 0)
     
-	li $t4, 10                 # carrega em t4 o código ASCII de '\n' (newline)
-	sb $t4, veiculos($t2)      # armazena o '\n' no espaço seguinte
-
-j printBanner              # volta para o inícioinicio
+   j printBanner #volta pro inicio
     
 carro_existente: #cai aqui se já houver um carro
     printString(msg_carro_existente) #printa mensagem de que já existe um carro naquela vaga
