@@ -41,6 +41,7 @@ addMorador:  .asciiz "addMorador"
 salvar:   .asciiz "salvar"
 rmvMorador: .asciiz "rmvMorador"
 recarregar: .asciiz "recarregar"
+formatar: .asciiz "formatar"
 newline:    .asciiz "\n"
 limparAp:     .asciiz "limparAp"
 infoAp:       .asciiz "infoAp"
@@ -418,6 +419,37 @@ comparaRecarregar:
 	
 	j printBanner
 
+limparEndereco:
+    move  $t0, $a0 # move o que está em $a0 para $t0 (endereço)
+    move  $t1, $a1 # carrega a quantidade de bytes de $a1 em $t0
+    li   $t2, 0 # inicializa o contador em 0
+    
+	limparEnderecoLoop:
+    	beq  $t2, $t1, fimLimparEndereco # se o contador atingir a quantidade de bytes em $a1, encerre
+    	sb   $zero, 0($t0) # armazena 0 no index do buffer
+    	addi $t0, $t0, 1  # avança para o proximo caractere
+    	addi $t2, $t2, 1 # incrementa o contador
+    	b limparEnderecoLoop # reinicia o loop enquanto o contador não igualar
+    
+	fimLimparEndereco:
+    	jr $ra # retorna o programa que o chamou
+
+comparaFormatar:
+	# verifica se o comando é formatar
+	la $a0, input # Carrega o endereço do input em $a0
+	la $a1, formatar # Carrega o endereço do comando "formatar" em $a1
+	jal strcmp # Chama a função strcmp
+	bnez $v0, comparaInfoAp # Se não for "formatar", entra em comparaInfoAp
+
+	la $a0, moradores # carrega a string de moradores em $a0
+	li $a1, 5670 # carrega os 5670 bytes de endereço de moradores em $a1
+	jal limparEndereco # chama a função limparEndereco
+	
+	la $a0, veiculos # carrega a string de veiculos em $a0
+	li $a1, 1440 # carrega os 1440 bytes de endereço de veiculos em $a1
+	jal limparEndereco # chama a função limparEndereco
+	
+	j printBanner
 
 comparaInfoAp:
 	la $a0, input #carrega o que está no endereço de input
@@ -425,7 +457,6 @@ comparaInfoAp:
 	jal strcmp #Compara o comando pra saber se é o comando "infoAp"
 	bnez $v0, comparaRmvMorador #Se não for, pula para comparaAddMorador
 
- 
     printString msg_andar #printa o que está em msg_andar
    
     li $v0, 5
@@ -597,7 +628,6 @@ apartamentoVazio:
 apartamentoNaoVazio:
     printString(falhaMsg)
     j printBanner
-
 
 comparaAddMorador:
     # Verifica se o comando é "addMorador"
