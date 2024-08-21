@@ -32,7 +32,7 @@ veiculos:     .space 1440   # 12 andares x 2 apartamentos por andar x  30 bytes 
 input:     .space 100         #espaço reservado para o input do usuário
 mensagemPrintar:  .space 100  #espaço reservado para o print da mensagem
 
-banner:     .asciiz "\nGLM-shell>> "
+banner:     .asciiz "\nGLM-shell>> " #iniciais do grupo no formato requisitado
 comandoSair:   .asciiz "exit"
 # modificar caminho caso seja necessário, pois não existe caminho relativo
 path_moradores:  .asciiz "/home/gabriel/Projetos/Projeto1ASM/Dados-Salvos/moradores.txt"
@@ -45,6 +45,7 @@ formatar: .asciiz "formatar"
 newline:    .asciiz "\n"
 limparAp:     .asciiz "limparAp"
 infoAp:       .asciiz "infoAp"
+infoGeral: .asciiz "infoGeral"
 numApto: .asciiz "AP: "
 msg_apto_vazio: .asciiz "Apartamentos vazios."
 msg_moradores: .asciiz "Moradores: \n"
@@ -67,12 +68,12 @@ msg_carro_registrado: .asciiz "\nCarro registrado com sucesso!\n"
 msg_moto_registrada:  .asciiz "\nMoto registrada com sucesso!\n"
 msg_carro_existente:  .asciiz "\nEste apartamento não pode registrar um carro.\n"
 msg_motos_existentes: .asciiz "\nEste apartamento já possui duas motos cadastradas. Não pode registrar mais veículos.\n"
-msg_vazios:         .asciiz "Numero de apartamentos vazios: "
+msg_vazios:         .asciiz "Vazios: "
 msg_excluir: .asciiz "Digite o nome do morador a excluir: "  # Mensagem para solicitar o nome do morador a excluir
-msg:        .asciiz "\nPorcentagens de apartamentos ocupados: ("
+msg_ocupados:        .asciiz "\nOcupados: "
 falhaMsg:        .asciiz "Falha: morador nao encontrado\n"
+abreParentese: .asciiz " ("
 porcentagem: .asciiz "%)"
-relatorio: .asciiz "relatorio"
 apartamentoLimpo: .asciiz "Apartamento limpo com sucesso"
 .text
 
@@ -88,14 +89,14 @@ printBanner:
     lerString input, 100 #recebe e lê o input do usuário
 
     la $t0, input  #carrega o endereço do input em t0
-    li $t1, 0      #inicializa o contador de indices em t1
+    li $t1, 0      #inicializa o contador de indice em t1 como 0
     
 procuraEnter: #troca o enter do input por fim da string (\0) para que apenas a parte da string em si lida
     lb $t2, 0($t0)     #carrega o byte n em t2
     beqz $t2, comparaComandoExit   #se o byte for nulo, entra em comparaComandoExit para comparar com os comandos cadastrados
     beq $t2, 10, fimDeString  #verifica se em t2 (endereço do byte atual) é 10 (valor ASCII do \n que é o enter), se for ele entra em fimDeString
-    addi $t0, $t0, 1            #incrementa o índice
-    j procuraEnter #volta pra procuraEnter
+    addi $t0, $t0, 1            #incrementa o índice para n+1
+    j procuraEnter #volta pra procuraEnter em loop
 
 fimDeString:
     sb $zero, 0($t0)  #armazena fim de linha em na posição que enter foi encontrado
@@ -111,160 +112,165 @@ comparaComandoExit: #compara com o comando exit
     li $v0, 10                  #syscall para sair do programa
     syscall                    
 
-comparaAddAuto:
-la $a0, input
-la $a1, addAuto
-jal strcmp
-bnez $v0, comparaRelatorio
+	comparaAddAuto:
+	la $a0, input				#carrega o endereço do input em a0
+	la $a1, addAuto				#carrega o endereço do comando "addAuto" em a1
+	jal strcmp					#chama a função strcmp 
+	bnez $v0, comparaInfoGeral	#se não for "addAuto", verifica se é "infoGeral"
 
     # Solicita o andar
     printString(msg_andar)
     
     # Lê o Int Andar e armazena em $t0
-    lerInt($t0)
-    subi $t0, $v0, 1          # $t0 = andar (0-11)
+    lerInt($t0)				   # t0 = 1-12
+    subi $t0, $v0, 1          # $t0 = andar dentro do sistema (0-11)
      
-    blt $t0, $zero, inputInvalido #verifica se o numero do aptmento é válido
-    bgt $t0, 11, inputInvalido
+    blt $t0, $zero, inputInvalido #verifica se o numero do aptmento é inválido (<0)
+    bgt $t0, 11, inputInvalido	  #verifica se o numero do aptmento é inválido (>11)
     
-    # Solicita o número do apartamento
-    printString(msg_apto)
     
-    # Lê o Int Apartamento e armazena em $t1
-    lerInt($t1)
-    subi $t1, $t1, 1          # $t1 = apartamento (0 ou 1)
+    printString(msg_apto) # solicita o número do apartamento
     
-    blt $t1, $zero, inputInvalido #verifica se o numero do aptmento é válido
-    bgt $t1, 1, inputInvalido
+    
+    lerInt($t1)				# lê e armazena em $t1 o número do apartamento (1/2)
+    subi $t1, $t1, 1          # $t1 = apartamento dentro do sistema (0 ou 1)
+    
+    blt $t1, $zero, inputInvalido #verifica se o numero do aptmento é inválido (<0)
+    bgt $t1, 1, inputInvalido		#verifica se o numero do aptmento é inválido (>1)
     
     
     # Calcula o índice base no array de veículos
-    sll $t2, $t0, 1          # t2 = andar x 2 = indice do primeiro apartamento do andar (ex: andar 1 = apt 2 e 3, logo o primeiro apt do andar 1 é 2)
-    add $t2, $t2, $t1        # t2 = índice do apartamento (0-23)= = somar o numero do apartamento ao endereço base 
-    li $t3, 60               # t3 = Tamanho do espaço reservado para cada apartamento (60 bytes = 30 bytes por veículo x no máximo 2)
-    mul $t2, $t2, $t3        # calcula o endereço no vetor veiculos contando 60 bytes para cada, (apt 3 x 60 = 180 = posição inicial do terceiro apt)
+    sll $t2, $t0, 1          # t2 = andar x 2 = indice do primeiro apartamento do andar (ex: andar 1 = apt 2 e 3, logo o primeiro apt do andar 1 é 2*1 = 2)
+    add $t2, $t2, $t1        # t2 = índice do apartamento (0-23)= = somar o numero do apartamento ao endereço base para obter a posição relativa
+    li $t3, 60               # t3 = Tamanho do espaço reservado para cada apartamento em veiculos(60 bytes = 30 bytes por veículo x no máximo 2)
+    mul $t2, $t2, $t3        # calcula o endereço no vetor veiculos contando 60 bytes para cada, (apt 3 x 60 = 180 = posição inicial do primeiro byte do terceiro apt)
     
     # Verifica quantos veículos já estão cadastrados no apt
     li $t4, 0                 # Contador de veículos
     li $t5, 30                # Tamanho de um "veiculo" (30 bytes)
     
-    printString(msg_veiculo)
+    printString(msg_veiculo) #printa mensagem pedindo o número relativo ao tipo de carro
     lerInt($t7)           # $t7 = tipo de veículo (1=carro, 2=moto)
-    blt $t7, 1, tipoVeiculoInvalido #verifica se o numero do opção é válida
-    bgt $t7, 2, tipoVeiculoInvalido
-    beq $t7, 1, verifica_carro # Se for carro, verifica se já existe um carro registrado    
+    blt $t7, 1, tipoVeiculoInvalido #verifica se o numero do opção é inválido (<1)
+    bgt $t7, 2, tipoVeiculoInvalido #verifica se o numero do opção é inválido (>2)
+    beq $t7, 1, verifica_carro # Se for carro, verifica se já existe um carro registrado (lógica de implementação diferente)  
     
-verifica_moto:
+verifica_moto: #se não for carro, é uma moto então entra em verifica moto
 
-    lb $t6, veiculos($t2)   # carrega em t6 o byte na posição indicada por t2 em veiculos
+    lb $t6, veiculos($t2)   # carrega em t6 o byte na posição n (indicada por t2) em veiculos
     beqz $t6, cadastrar_moto # se t6 for 0, significa que não está ocupado, portanto pula para registrar veículo
-    addi $t4, $t4, 1          # caso t6 não seja 0, temos que o endereço de memória está com outro veículo. Por isso, incrementa o contador de moradores
+    addi $t4, $t4, 1          # caso t6 não seja 0, temos que o endereço de memória está com outro veículo. Por isso, incrementa o contador de veículos
     add $t2, $t2, $t5         # t2 = endereço do próximo espaço para veiculo obtido ao soma o endereço atual do vetor com 30 (espaço de um veiculo)
-    bne $t4, 2, verifica_moto # Continua verificando se menos de 6 moradores
+    bne $t4, 2, verifica_moto # Continua verificando se menos de 2 veículos
     
 vagas_esgotadas:    
-    # Se já houver 2 veiculos não há mais vagas, printa e volta pro loop
-    printString(msg_vagas_ocupadas)
-    j printBanner
+    # Se já houver 2 veiculos não há mais vagas, printa a mensagem e volta pro loop principal
+    printString(msg_vagas_ocupadas)#macro que printa a mensagem de vagas já ocupadas
+    j printBanner #volta pro loop principal
 
 cadastrar_moto:
     
-    # Se for moto
-    printString(msg_modelo)
+    # Se o endereço estiver livre vem para o cadastro da moto
+    printString(msg_modelo)   #printa mensagem pedindo o modelo da moto
     
-    li $v0, 8                 # Lê o modelo da moto
+    li $v0, 8                 # lê o modelo da moto (string)
     la $a0, veiculos($t2)     #armazena em veiculos(t2)
     li $a1, 20                # Tamanho do modelo é 20 bytes
     syscall
     
-    printString(msg_placa)
+    printString(msg_placa) #printa mensagem pedindo a placa da moto
     
-    li $v0, 8                 # Lê a placa da moto
-    la $a0, veiculos($t2)      #armazena em veiculos(t2)
-    addi $a0, $a0, 20         # Offset para a placa (20 bytes após o modelo)
-    li $a1, 10                # Tamanho da placa é 10 bytes
+    li $v0, 8                 # lê a placa da moto
+    la $a0, veiculos($t2)     # armazena string lida em veiculos(t2)
+    addi $a0, $a0, 20         # espaços para se chegar na placa (20 bytes dps do modelo)
+    li $a1, 10                # Tamanho da placa é 10 bytes (limite informado para a string lida)
     syscall
     
-    printString(msg_moto_registrada)             
+    printString(msg_moto_registrada)  #printa mensagem de cadastro realizado com sucesso           
 
-    j printBanner
+    j printBanner #volta pro loop
     
-    verifica_carro:
-    # Se o espaço já estiver ocupado (ou seja, um carro já registrado)
-    lb $t6, veiculos($t2)   # Verifica se a posição está ocupada
-    bnez $t6, carro_existente
+    verifica_carro: #lógica se o tipo informado foi 1 (carro)
+    # verifica se o espaço já estiver ocupado (ou seja, um carro já registrado)
+    lb $t6, veiculos($t2)   # verifica se a posição está ocupada
+    bnez $t6, carro_existente #se o byte na primeira posição não for zero
     
-    # Se não estiver ocupado, registra o carro
-    printString(msg_modelo)
+    # se não estiver ocupado, registra o carro
+    printString(msg_modelo) #print msg pedindo o modelo do carro
     
-    li $v0, 8               # Lê o modelo do carro
-    la $a0, veiculos($t2)
-    li $a1, 20              # Tamanho do modelo é 20 bytes
+    li $v0, 8               # lê o modelo do carro
+    la $a0, veiculos($t2)	# string será armazenada em veiculos(t2)
+    li $a1, 20              # tamanho máximo do modelo é 20 bytes
     syscall
     
-    printString(msg_placa)
+    printString(msg_placa) #printa mensagem pedindo para digitar a placa
     
-    addi $t2, $t2, 20       # Offset para a placa (20 bytes após o modelo)
-    li $v0, 8               # Lê a placa do carro
-    la $a0, veiculos($t2)
-    li $a1, 10              # Tamanho da placa é 10 bytes
+    addi $t2, $t2, 20       # espaço para passar para o endereço da placa (20 bytes após o modelo)
+    li $v0, 8               # lê a placa do carro
+    la $a0, veiculos($t2)  # string será armazenada em veiculos(t2)
+    li $a1, 10              # tamanho da placa é 10 bytes
     syscall
     
-    printString(msg_carro_registrado)
+    printString(msg_carro_registrado) #printa a mensagem de carro foi registrado com sucesso
 
-    # Preenche os 30 bytes restantes com 'x'
-    addi $t2, $t2, 10       # Offset para os 30 bytes restantes (após modelo + placa)
-    li $t3, 30              # Número de bytes a preencher
-    li $t4, 'x'             # Caractere 'x' ASCII
+	# aqui como optamos por um espaço para todos os veículos, a lógica de carro é atendida preenchendo as outra posições com x para não permitir adicionar uma moto. 
+    # portanto aqui preenchemos os 30 bytes restantes com 'x'
+    addi $t2, $t2, 10       # tamanho para chegar nos 30 bytes restantes (após modelo + placa)
+    li $t3, 30              # inicia t3 com o número de bytes a preencher
+    li $t4, 'x'             # carrega em t4 o char 'x' em ASCII
 
 preenche_espaco:
-    sb $t4, veiculos($t2)          # Armazena 'x' no espaço
-    addi $t2, $t2, 1        # Avança para o próximo byte
-    subi $t3, $t3, 1        # Decrementa contador
-    bnez $t3, preenche_espaco  # Continua preenchendo até completar 30 bytes
+    sb $t4, veiculos($t2)          # armazena 'x' no espaço indicado
+    addi $t2, $t2, 1        # passa para o próximo byte (aumenta o indice)
+    subi $t3, $t3, 1        # reduz o contador de bytes a serem preenchidos
+    bnez $t3, preenche_espaco  # volta pro loop preenchendo até completar 30 bytes (t3 = 0)
     
-   j printBanner
+   j printBanner #volta pro inicio
     
-carro_existente:
-    printString(msg_carro_existente)
+carro_existente: #cai aqui se já houver um carro
+    printString(msg_carro_existente) #printa mensagem de que já existe um carro naquela vaga
     j printBanner                # Volta ao início
  
-comparaRelatorio: 
-  # Verifica se o comando é "addMorador"
+comparaInfoGeral: 
+  # Verifica se o comando é "infoGeral"
     la $a0, input             # Carrega o endereço do input em $a0
-    la $a1, relatorio        # Carrega o endereço do comando "relatorio" em $a1
+    la $a1, infoGeral        # Carrega o endereço do comando "infoGeral" em $a1
     jal strcmp                # Chama a função strcmp
-    bnez $v0, comparaLimparAp   # Se não for "relatorio", entra em comparaLimparAp
+    bnez $v0, comparaLimparAp   # Se não for "infoGeral", entra em comparaLimparAp
 
 
-    # Calcular a porcentagem: (parte / total) * 100
-    mul $t2, $s1, 100       # $t2 = parte * 100
-    div $t2, $s0            # $t2 = (parte * 100) / total
-    mflo $t2                # Mover o resultado da divisão para $t2
+    # para podermos calcular a porcentagem: (parte / total) * 100
+    mul $t2, $s1, 100       # $t2 = (parte=s1=ocupados) * 100
+    div $t2, $s0            # $t2 = (resultado da linha anterior) / total=s0=total de apartamentos
+    mflo $t2                # move o resultado da divisão (quociente) para $t2
     
-    # Calcula e imprime o número de apartamentos vazios
-    sub $t7, $s0, $s1         # $t7 = Total de apartamentos - ocupados
-    printString(msg_vazios)   # Imprime mensagem de apts vazios
-    move $a0, $t7
-    li $v0, 1
+    # calcula e imprime o número de apartamentos vazios
+    sub $t7, $s0, $s1         # $t7 = Total de apartamentos (s0) - ocupados (s1)
+    printString(msg_vazios)   #imprime mensagem de apts vazios
+    move $a0, $t7			  #printa o numero de apartamentos vazios
+    li $v0, 1				  #operação de printar inteiro
     syscall
-    
-    printString msg
-   
+    printString(abreParentese) #printa um (
+	li $t3, 100                #carrega 100 em t3 (100%)
+	sub $t4, $t3, $t2		   #subtrai a porcentagem de ocupados (t2) de 100 
+	li $v0, 1				  #printa int
+	move $a0, $t4			  #que estiver em t4
+	syscall
+	printString(porcentagem) #printa o porcentagem fecha parenteses
+    printString msg_ocupados			#printa mensagem de porcentagem de aps ocupados
+    li $v0, 1					#operação print int
+	move $a0, $s1				#imprime o que está em s1 (numero de pas ocupados)
+	syscall
+	printString(abreParentese) #printa abre parenteses
     # Converter e imprimir o número (a porcentagem)
     move $a0, $t2           # Move o valor calculado para $a0
-    jal printInteger        # Chama função para imprimir o valor
+    li $v0, 1
+	syscall        
     printString porcentagem
     
     
    j printBanner
    
-# Função para imprimir um número inteiro
-printInteger:
-    li $v0, 1               # syscall para imprimir inteiro
-    syscall
-    jr $ra                  # Retorna à função chamadora
-
 
 comparaLimparAp:
 
