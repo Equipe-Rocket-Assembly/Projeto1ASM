@@ -39,6 +39,7 @@ path_moradores:  .asciiz "/home/gabriel/Projetos/Projeto1ASM/Dados-Salvos/morado
 path_veiculos:  .asciiz "/home/gabriel/Projetos/Projeto1ASM/Dados-Salvos/veiculos.txt"
 addMorador:  .asciiz "addMorador"
 salvar:   .asciiz "salvar"
+rmvMorador: .asciiz "rmvMorador"
 recarregar: .asciiz "recarregar"
 newline:    .asciiz "\n"
 limparAp:     .asciiz "limparAp"
@@ -66,7 +67,9 @@ msg_moto_registrada:  .asciiz "\nMoto registrada com sucesso!\n"
 msg_carro_existente:  .asciiz "\nEste apartamento não pode registrar um carro.\n"
 msg_motos_existentes: .asciiz "\nEste apartamento já possui duas motos cadastradas. Não pode registrar mais veículos.\n"
 msg_vazios:         .asciiz "Numero de apartamentos vazios: "
+msg_excluir: .asciiz "Digite o nome do morador a excluir: "  # Mensagem para solicitar o nome do morador a excluir
 msg:        .asciiz "\nPorcentagens de apartamentos ocupados: ("
+falhaMsg:        .asciiz "Falha: morador nao encontrado\n"
 porcentagem: .asciiz "%)"
 relatorio: .asciiz "relatorio"
 apartamentoLimpo: .asciiz "Apartamento limpo com sucesso"
@@ -416,11 +419,11 @@ comparaRecarregar:
 	j printBanner
 
 
-	comparaInfoAp:
+comparaInfoAp:
 	la $a0, input #carrega o que está no endereço de input
 	la $a1, infoAp #coloca as strings nos registradores certos para a função strcmp
 	jal strcmp #Compara o comando pra saber se é o comando "infoAp"
-	bnez $v0, comparaAddMorador #Se não for, pula para comparaAddMorador
+	bnez $v0, comparaRmvMorador #Se não for, pula para comparaAddMorador
 
  
     printString msg_andar #printa o que está em msg_andar
@@ -504,14 +507,99 @@ printMoradores:
 proximoMorador:
     add $t2, $t2, $t9            #move para o próximo morador (incremento de 40 bytes)
     addi $t4, $t4, 1              #incrementa o contador de moradores
-    j printMoradores                #repete o loop para o próximo morador
+    j printMoradores                #repete o loop para o próximo morador          
 
 comparaFinal:
 
-j printBanner             
+j printBanner 
+
+comparaRmvMorador:
+    la $a0, input             # Carrega o endereço do input em $a0
+    la $a1, rmvMorador        # Carrega o endereço do comando "rmvMorador" em $a1
+    jal strcmp                # Chama a função strcmp
+    bnez $v0, comparaAddMorador  # Se não for "rmvMorador", entra em comparaAddMorador
+
+    printString(msg_andar)    # Pede o andar do novo morador
+    lerInt($t0)               # Lê efetivamente o Andar e armazena em $t0
+    subi $t0, $t0, 1          # Subtrai para ficar de 0-11
+    
+    blt $t0, $zero, inputInvalido # Verifica se o número do andar é válido
+    bgt $t0, 11, inputInvalido
+    
+    printString(msg_apto)     # Pede o apartamento do novo morador
+    lerInt($t1)               # Lê efetivamente o número do Apartamento e armazena em $t1
+    subi $t1, $t1, 1          # $t1 = número apartamento digitado - 1 = 0/1
+    
+    blt $t1, $zero, inputInvalido  # Verifica se o número do apartamento é válido
+    bgt $t1, 1, inputInvalido
+    
+    # Calcula posição no array de moradores
+    sll $t2, $t0, 1           # $t2 = andar x 2 = índice do primeiro apartamento do andar 
+    add $t2, $t2, $t1         # $t2 = índice do apartamento (0-23)
+    li $t3, 240               # $t3 = tamanho do espaço reservado para cada apartamento (240 bytes)
+    mul $t2, $t2, $t3         # $t2 = endereço no vetor moradores (deslocamento)
+
+    la $t4, moradores         # Carrega o endereço base de `moradores` em $t4
+    add $t5, $t4, $t2         # $t5 aponta para o início do apartamento específico
+
+    # Solicita o nome do morador a excluir
+    printString(msg_excluir)  # Pede o nome do morador a excluir
+    la $a0, input             # Endereço para armazenar o nome do morador
+    li $a1, 40                # Limite de caracteres
+    li $v0, 8                 # Syscall para leitura de string
+    syscall
+
+    # Verifica se o morador existe e exclui
+    li $t6, 6                 # Número máximo de moradores por apartamento
+
+checaMorador:
+    beqz $t6, verificaSeVazio  # Se t6 = 0, não tem mais moradores, verifica se o apartamento está vazio
+    move $a0, $t5             # Carrega o endereço do morador atual em $a0
+    la $a1, input             # Carrega o nome digitado em $a1
+    jal strcmp                # Chama a função strcmp
+
+    beqz $v0, excluirMorador  # Se strcmp retorna 0, os nomes são iguais
+    addi $t5, $t5, 40         # Se não, avança para o próximo morador (+40 bytes)
+    subi $t6, $t6, 1          # Decrementa quantidade de moradores
+    j checaMorador
+
+excluirMorador:
+    li $t8, 40                # 40 bytes para zerar o nome
+    li $t9, 0                 # Valor zero para zerar os bytes
+
+zerarNome:
+    beqz $t8, checaMorador    # Se todos os 40 bytes foram zerados, volta a checar
+    sb $t9, 0($t5)            # Zera um byte do nome
+    addi $t5, $t5, 1          # Avança para o próximo byte
+    subi $t8, $t8, 1          # Decrementa o contador de bytes
+    j zerarNome
+
+verificaSeVazio:
+    						   # Verifica se o apartamento está vazio
+    li $t6, 6                 # Número máximo de moradores por apartamento
+    li $t7, 0                 # Valor zero para comparação
+
+verificaInicios:
+    beqz $t6, apartamentoVazio # Se todos os bytes em intervalos de 40 foram verificados, apartamento está vazio
+    lb $t8, 0($t5)            # Carrega o byte atual em t8
+    beq $t8, $t7, incrementa   # Se o byte for zero, checa o próximo
+    j apartamentoNaoVazio
+
+incrementa:
+    addi $t5, $t5, 40         # Avança para o próximo bloco de bytes
+    subi $t6, $t6, 1          # Decrementa o contador de blocos
+    j verificaInicios
+
+apartamentoVazio:
+    subi $s1, $s1, 1         # Subtrai 1 de $s1, já que o ap ficou vazio
+    j printBanner
+
+apartamentoNaoVazio:
+    printString(falhaMsg)
+    j printBanner
+
 
 comparaAddMorador:
-
     # Verifica se o comando é "addMorador"
     la $a0, input             # Carrega o endereço do input em $a0
     la $a1, addMorador        # Carrega o endereço do comando "addMorador" em $a1
