@@ -381,7 +381,7 @@ comparaRecarregar:
 	la $a0, input # Carrega o endereço do input em $a0
 	la $a1, recarregar # Carrega o endereço do comando "recarregar" em $a1
 	jal strcmp # Chama a função strcmp
-	bnez $v0, comparaInfoAp # Se não for "recarregar", entra em comparaAddMorador
+	bnez $v0, comparaFormatar # Se não for "recarregar", entra em comparaFormatar
     
 	li $v0, 13 # carrega o codigo de serviço 13 (abrir arquivo)
 	la $a0, path_moradores # passa o caminho para o arquivo moradores.txt
