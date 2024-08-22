@@ -1,3 +1,11 @@
+#Grupo: Gabriel Cisneiros, Lucas Aurélio e Marcela Hadassa (Equipe Rocket)
+#Projeto: 1ª VA
+#Disciplina: Arquitetura e organização de computadores
+#Semestre letivo: 2024.1
+#Arquivo: req5
+#Descrição: Shell com as iniciais do grupo
+
+
 #macro que printa uma string utilizando o endereço dela como variavel
 .macro printString %endereco_str
     li $v0, 4
