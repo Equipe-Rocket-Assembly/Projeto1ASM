@@ -1,3 +1,11 @@
+#Grupo: Gabriel Cisneiros, Lucas Aurélio e Marcela Hadassa (Equipe Rocket)
+#Projeto: 1ª VA
+#Disciplina: Arquitetura e organização de computadores
+#Semestre letivo: 2024.1
+#Arquivo: req1
+#Descrição: Cadastro de moradores nos apartamentos
+
+
 .data
 moradores:  .space 5760   # 12 andares x 2 apartamentos por andar x 6 moradores x 40 bytes (nome) por morador
 
