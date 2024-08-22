@@ -1,3 +1,11 @@
+#Grupo: Gabriel Cisneiros, Lucas Aurélio e Marcela Hadassa (Equipe Rocket)
+#Projeto: 1ª VA
+#Disciplina: Arquitetura e organização de computadores
+#Semestre letivo: 2024.1
+#Arquivo: req3
+#Descrição: Salva os dados
+
+
 .data
 filePath: .asciiz "/home/gabriel/Projetos/Projeto1ASM/output.txt"
 toWrite: .space 64
