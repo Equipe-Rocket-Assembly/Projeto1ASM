@@ -1,3 +1,11 @@
+#Grupo: Gabriel Cisneiros, Lucas Aurélio e Marcela Hadassa (Equipe Rocket)
+#Projeto: 1ª VA
+#Disciplina: Arquitetura e organização de computadores
+#Semestre letivo: 2024.1
+#Arquivo: req6
+#Descrição: Contabiliza os apartamentos vazios e os ocupados
+
+
 .data
     msg_andar:          .asciiz "\nDigite o andar (1-12): "
     msg_apto:           .asciiz "Digite o número do apartamento (1-2): "
