@@ -1,3 +1,11 @@
+#Grupo: Gabriel Cisneiros, Lucas Aurélio e Marcela Hadassa (Equipe Rocket)
+#Projeto: 1ª VA
+#Disciplina: Arquitetura e organização de computadores
+#Semestre letivo: 2024.1
+#Arquivo: req2
+#Descrição: Cadastro de carros e motos
+
+
 .data
 veiculos:     .space 1440   # 12 andares x 2 apartamentos por andar x  30 bytes (20 bytes modelo + 10 bytes placa) por veiculo x 2 motos (maior espaço possível)
 
